@@ -98,6 +98,8 @@ class ArabicTextRenderer:
             error description starting with ``"Error:"`` on failure.
         """
         # 1. Validate image_path if provided
+        if image_path is not None and image_path.strip() == "":
+            image_path = None  # LLMs sometimes pass '' instead of null
         if image_path is not None:
             img_p = Path(image_path)
             if not img_p.is_file():

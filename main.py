@@ -8,7 +8,7 @@ This demonstrates two usage modes:
 
 from arabic_renderer import ArabicTextRenderer
 from tools import render_arabic_text
-# test
+
 
 def direct_usage() -> None:
     """Call the renderer directly, bypassing the LLM."""
@@ -24,22 +24,19 @@ def direct_usage() -> None:
 
 def agent_usage() -> None:
     """Bind the tool to a LangChain Agent powered by Ollama."""
-    from langchain_ollama import OllamaLLM
-    from langchain.agents import initialize_agent, AgentType
+    from langchain_ollama import ChatOllama
+    from langchain.agents import create_agent
 
-    llm = OllamaLLM(model="gpt-oss-safeguard:20b")
+    llm = ChatOllama(model="gpt-oss-safeguard:20b")
     tools = [render_arabic_text]
 
-    agent = initialize_agent(
+    agent = create_agent(
+        model=llm,
         tools=tools,
-        llm=llm,
-        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-        verbose=True,
-        handle_parsing_errors=True,
     )
 
     response = agent.invoke(
-        "Render the Arabic phrase 'السلام عليكم' using the Cairo font at size 72."
+        {"messages": [{"role": "user", "content": "Render the Arabic phrase 'فارس الغازي' with white color and black outline at size 72. and the path of the image is 'image.png'"}]}
     )
     print(response)
 
@@ -47,5 +44,5 @@ def agent_usage() -> None:
 if __name__ == "__main__":
     # Run the direct test by default (no LLM dependency).
     # Uncomment agent_usage() to test the full agent loop.
-    direct_usage()
-    # agent_usage()
+    # direct_usage()
+    agent_usage()
