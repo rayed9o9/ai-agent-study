@@ -15,7 +15,7 @@ def direct_usage() -> None:
     renderer = ArabicTextRenderer()
     result = renderer.render_text_as_image(
         text="بسم الله الرحمن الرحيم",
-        font_name="Amiri",
+        font_name="Alyamama",
         image_path="image.png",
         size=64,
     )

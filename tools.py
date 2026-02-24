@@ -16,11 +16,17 @@ _renderer = ArabicTextRenderer()
 @tool
 def render_arabic_text(
     text: str,
-    font_name: str = "Amiri",
+    font_name: str = "Alyamama",
     size: int = 48,
     image_path: str | None = None,
     x: int | None = None,
     y: int | None = None,
+    text_color: str = "0,0,0",
+    bg_color: str = "255,255,255",
+    padding: int = 40,
+    outline_color: str = "255,255,255",
+    outline_width: int = 0,
+    max_width: int = 0,
 ) -> str:
     """Render Arabic text as a PNG image and return the file path.
 
@@ -34,7 +40,7 @@ def render_arabic_text(
         text: The Arabic text to render (raw Arabic — reshaping is handled
               automatically).
         font_name: Name of the font family to use. The font must exist in the
-                   project's ``fonts/`` directory (e.g. 'Amiri', 'Cairo').
+                   project's ``fonts/`` directory (e.g. 'Alyamama', 'Amiri', 'Cairo').
         size: Font size in pixels (default 48).
         image_path: Optional absolute path to a background image. When provided,
                     the text is drawn on top of this image instead of a blank
@@ -43,6 +49,21 @@ def render_arabic_text(
            edge). Defaults to horizontally centered if not specified.
         y: Vertical pixel position for the text on the image (from the top
            edge). Defaults to vertically centered if not specified.
+        text_color: Text fill color as comma-separated RGB values, e.g.
+                    '255,0,0' for red. Default is '0,0,0' (black).
+        bg_color: Background color as comma-separated RGB values, e.g.
+                  '30,30,30' for dark gray. Only used when rendering on a
+                  blank canvas (no image_path). Default is '255,255,255' (white).
+        padding: Padding around the text in pixels when rendering on a blank
+                 canvas. Default is 40.
+        outline_color: Outline/stroke color as comma-separated RGB values. Used
+                       together with outline_width for a text stroke effect.
+                       Default is '255,255,255' (white).
+        outline_width: Outline/stroke thickness in pixels. Set to 0 to disable
+                       (default). Values of 2-4 work well for most sizes.
+        max_width: Maximum width in pixels before text wraps to the next line.
+                   Set to 0 to disable wrapping (default). Useful for long
+                   sentences that should fit within a specific width.
 
     Returns:
         The absolute file path to the generated PNG image on success,
@@ -55,5 +76,10 @@ def render_arabic_text(
         image_path=image_path,
         x=x,
         y=y,
+        text_color=text_color,
+        bg_color=bg_color,
+        padding=padding,
+        outline_color=outline_color,
+        outline_width=outline_width,
+        max_width=max_width,
     )
-

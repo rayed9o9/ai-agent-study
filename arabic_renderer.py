@@ -46,11 +46,17 @@ class ArabicTextRenderer:
     def render_text_as_image(
         self,
         text: str,
-        font_name: str = "Amiri",
+        font_name: str = "Alyamama",
         size: int = 48,
         image_path: str | None = None,
         x: int | None = None,
         y: int | None = None,
+        text_color: str = "0,0,0",
+        bg_color: str = "255,255,255",
+        padding: int = 40,
+        outline_color: str = "255,255,255",
+        outline_width: int = 0,
+        max_width: int = 0,
     ) -> str:
         """Render *text* in Arabic to a PNG file and return its path.
 
@@ -71,6 +77,19 @@ class ArabicTextRenderer:
         y : int | None
             Vertical position for the text on the image (pixels from the top).
             Defaults to center if not specified.
+        text_color : str
+            Text fill color as ``R,G,B`` (default ``"0,0,0"`` — black).
+        bg_color : str
+            Background color as ``R,G,B`` for blank-canvas mode
+            (default ``"255,255,255"`` — white).
+        padding : int
+            Padding around text in pixels for blank-canvas mode (default 40).
+        outline_color : str
+            Outline/stroke color as ``R,G,B`` (default ``"255,255,255"`` — white).
+        outline_width : int
+            Outline thickness in pixels (default 0 — disabled).
+        max_width : int
+            Maximum text width in pixels before wrapping (default 0 — no wrap).
 
         Returns
         -------
@@ -93,9 +112,18 @@ class ArabicTextRenderer:
                 f"Available fonts: {available or 'none — add .ttf/.otf files to fonts/<FamilyName>/'}."
             )
 
-        # 3. Process Arabic text (reshape + BiDi)
+        # 3. Process Arabic text
+        #    When Pillow has raqm/harfbuzz support, skip arabic_reshaper and
+        #    let Pillow do native OpenType shaping (required for fonts like
+        #    Alyamama that lack Presentation Form glyphs). Otherwise fall back
+        #    to the legacy arabic_reshaper + BiDi pipeline.
+        use_raqm = self._has_raqm()
         try:
-            processed_text = self._process_arabic(text)
+            if use_raqm:
+                # raqm/harfbuzz handles shaping AND BiDi natively — pass raw text
+                processed_text = text
+            else:
+                processed_text = self._process_arabic(text)  # reshape + BiDi
         except Exception as exc:
             return f"Error: Arabic text processing failed — {exc}"
 
@@ -114,6 +142,14 @@ class ArabicTextRenderer:
                 image_path=image_path,
                 x=x,
                 y=y,
+                text_color=text_color,
+                bg_color=bg_color,
+                padding=padding,
+                outline_color=outline_color,
+                outline_width=outline_width,
+                max_width=max_width,
+                direction="rtl" if use_raqm else None,
+                language="ar" if use_raqm else None,
             )
         except Exception as exc:
             return f"Error: Subprocess execution failed — {exc}"
@@ -137,6 +173,15 @@ class ArabicTextRenderer:
         reshaped = arabic_reshaper.reshape(text)
         bidi_text = get_display(reshaped)
         return bidi_text
+
+    @staticmethod
+    def _has_raqm() -> bool:
+        """Return True if Pillow has raqm/harfbuzz text-shaping support."""
+        try:
+            from PIL import features
+            return bool(features.check("raqm"))
+        except Exception:
+            return False
 
     def _resolve_font(self, font_name: str) -> Path | None:
         """Return the first .ttf/.otf file inside ``fonts_dir/font_name/``."""
@@ -183,6 +228,14 @@ class ArabicTextRenderer:
         image_path: str | None = None,
         x: int | None = None,
         y: int | None = None,
+        text_color: str = "0,0,0",
+        bg_color: str = "255,255,255",
+        padding: int = 40,
+        outline_color: str = "255,255,255",
+        outline_width: int = 0,
+        max_width: int = 0,
+        direction: str | None = None,
+        language: str | None = None,
     ) -> str | None:
         """Run the rendering worker script in a subprocess.
 
@@ -195,6 +248,9 @@ class ArabicTextRenderer:
             "--font", font_path,
             "--size", str(size),
             "--output", output_path,
+            "--text-color", text_color,
+            "--bg-color", bg_color,
+            "--padding", str(padding),
         ]
 
         if image_path is not None:
@@ -203,6 +259,15 @@ class ArabicTextRenderer:
             cmd.extend(["--x", str(x)])
         if y is not None:
             cmd.extend(["--y", str(y)])
+        if outline_width > 0:
+            cmd.extend(["--outline-color", outline_color])
+            cmd.extend(["--outline-width", str(outline_width)])
+        if max_width > 0:
+            cmd.extend(["--max-width", str(max_width)])
+        if direction is not None:
+            cmd.extend(["--direction", direction])
+        if language is not None:
+            cmd.extend(["--language", language])
 
         try:
             proc = subprocess.run(
