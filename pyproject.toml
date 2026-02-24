@@ -7,6 +7,10 @@ requires-python = ">=3.12"
 dependencies = [
     "langchain>=1.2.10",
     "langchain-community>=0.4.1",
+    "langchain-ollama>=1.0.1",
     "langchain-openai>=1.1.10",
     "tavily-python>=0.7.21",
+    "arabic-reshaper>=3.0.0",
+    "python-bidi>=0.6.6",
+    "Pillow>=10.0.0",
 ]
