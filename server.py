@@ -1,0 +1,138 @@
+"""
+FastAPI server for the Arabic Text AI Chat Agent.
+
+Serves a ChatGPT/Gemini-style web UI and proxies chat messages
+to the LangChain agent backed by Ollama + Arabic text tools.
+"""
+
+from __future__ import annotations
+
+import re
+import uuid
+from pathlib import Path
+
+from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+
+from langchain.agents import create_agent
+from langchain_ollama import ChatOllama
+
+from tools import render_arabic_text, render_arabic_texts, get_image_info
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+BASE_DIR = Path(__file__).resolve().parent
+OUTPUT_DIR = BASE_DIR / "output"
+UPLOAD_DIR = BASE_DIR / "uploads"
+STATIC_DIR = BASE_DIR / "static"
+
+OUTPUT_DIR.mkdir(exist_ok=True)
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+# ---------------------------------------------------------------------------
+# LangChain Agent (same pattern as main.py)
+# ---------------------------------------------------------------------------
+llm = ChatOllama(model="gpt-oss-safeguard:20b")
+tools = [render_arabic_text, render_arabic_texts, get_image_info]
+
+SYSTEM_PROMPT = (
+    "You are a helpful AI assistant that specializes in rendering Arabic text "
+    "onto images. When a user provides text and an image, use your tools to "
+    "render the Arabic text on the image. Always respond in the same language "
+    "the user uses. If the user uploads an image, its path will be provided. "
+    "Always call get_image_info first to learn the image dimensions before "
+    "placing text."
+)
+
+agent = create_agent(
+    model=llm,
+    tools=tools,
+    system_prompt=SYSTEM_PROMPT,
+)
+
+# ---------------------------------------------------------------------------
+# FastAPI app
+# ---------------------------------------------------------------------------
+app = FastAPI(title="Arabic AI Chat")
+
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index():
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/output/{filename}")
+async def serve_output(filename: str):
+    file_path = OUTPUT_DIR / filename
+    if file_path.is_file():
+        return FileResponse(file_path, media_type="image/png")
+    return JSONResponse({"error": "File not found"}, status_code=404)
+
+
+@app.post("/chat")
+async def chat(
+    message: str = Form(...),
+    image: UploadFile | None = File(None),
+):
+    """Accept a user message (+ optional image) and return the agent response."""
+    image_path: str | None = None
+
+    # Save uploaded image -------------------------------------------------
+    if image and image.filename:
+        ext = Path(image.filename).suffix or ".png"
+        saved_name = f"upload_{uuid.uuid4().hex[:8]}{ext}"
+        saved_path = UPLOAD_DIR / saved_name
+        contents = await image.read()
+        saved_path.write_bytes(contents)
+        image_path = str(saved_path)
+
+    # Build the prompt for the agent --------------------------------------
+    user_input = message
+    if image_path:
+        user_input += (
+            f"\n\nIMPORTANT: The user uploaded an image. You MUST use this "
+            f"exact path as the image_path argument when calling "
+            f"render_arabic_text or render_arabic_texts: {image_path}"
+        )
+
+    # Invoke agent --------------------------------------------------------
+    try:
+        result = agent.invoke(
+            {"messages": [{"role": "user", "content": user_input}]}
+        )
+        # Extract the final AI message text
+        messages = result.get("messages", [])
+        agent_text = ""
+        for msg in reversed(messages):
+            if hasattr(msg, "content") and msg.type == "ai" and msg.content:
+                agent_text = msg.content
+                break
+        if not agent_text:
+            agent_text = str(result)
+    except Exception as exc:
+        agent_text = f"Sorry, an error occurred: {exc}"
+
+    # Find any output image paths in the response -------------------------
+    output_images: list[str] = []
+    # Search in the agent text and also in all message contents
+    search_text = agent_text
+    for msg in result.get("messages", []):
+        if hasattr(msg, "content") and isinstance(msg.content, str):
+            search_text += " " + msg.content
+
+    for match in re.finditer(r"(?:/[^\s\"']+)?output/render_\w+\.png", search_text):
+        full_path = match.group(0)
+        fname = Path(full_path).name
+        if (OUTPUT_DIR / fname).is_file():
+            url = f"/output/{fname}"
+            if url not in output_images:
+                output_images.append(url)
+
+    return JSONResponse({
+        "reply": agent_text,
+        "images": output_images,
+    })
