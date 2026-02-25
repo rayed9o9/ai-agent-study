@@ -7,7 +7,7 @@ This demonstrates two usage modes:
 """
 
 from arabic_renderer import ArabicTextRenderer
-from tools import render_arabic_text
+from tools import render_arabic_text, render_arabic_texts, get_image_info
 
 
 def direct_usage() -> None:
@@ -28,7 +28,7 @@ def agent_usage() -> None:
     from langchain.agents import create_agent
 
     llm = ChatOllama(model="gpt-oss-safeguard:20b")
-    tools = [render_arabic_text]
+    tools = [render_arabic_text, render_arabic_texts, get_image_info]
 
     agent = create_agent(
         model=llm,
@@ -36,7 +36,7 @@ def agent_usage() -> None:
     )
 
     response = agent.invoke(
-        {"messages": [{"role": "user", "content": "Render the Arabic phrase 'فارس الغازي' with white color and black outline at size 72. and the path of the image is 'image.png'"}]}
+        {"messages": [{"role": "user", "content": "design a bussiness card that has more than one text for a doctor with the name 'عبد الرحمن بن محمد' use 'image.png' as background my number is 0500000000 you can place the text on the middle of the image. and place the job title in arabic"}]}
     )
     print(response)
 

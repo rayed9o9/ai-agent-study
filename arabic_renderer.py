@@ -168,6 +168,142 @@ class ArabicTextRenderer:
 
         return str(output_path)
 
+    def render_multi_text(
+        self,
+        items: list[dict],
+        image_path: str | None = None,
+        bg_color: str = "255,255,255",
+        canvas_width: int = 800,
+        canvas_height: int = 600,
+    ) -> str:
+        """Render multiple text elements onto a single image.
+
+        Parameters
+        ----------
+        items : list[dict]
+            Each dict can contain:
+            - ``text`` (str, required): Arabic text to render.
+            - ``font_name`` (str): Font family name (default ``"Alyamama"``).
+            - ``size`` (int): Font size in pixels (default 48).
+            - ``x`` (int | None): X position (default center).
+            - ``y`` (int | None): Y position (default center).
+            - ``text_color`` (str): ``R,G,B`` (default ``"0,0,0"``).
+            - ``outline_color`` (str): ``R,G,B`` (default ``"255,255,255"``).
+            - ``outline_width`` (int): Stroke width (default 0).
+            - ``max_width`` (int): Wrap width (default 0 — no wrap).
+        image_path : str | None
+            Background image path. If None, a blank canvas is created.
+        bg_color : str
+            Canvas background color as ``R,G,B`` (only used without image_path).
+        canvas_width : int
+            Canvas width in pixels (only used without image_path).
+        canvas_height : int
+            Canvas height in pixels (only used without image_path).
+
+        Returns
+        -------
+        str
+            Absolute path to the saved PNG, or an error string.
+        """
+        import json
+
+        if image_path is not None and image_path.strip() == "":
+            image_path = None
+        if image_path is not None:
+            img_p = Path(image_path)
+            if not img_p.is_file():
+                return f"Error: Image file not found at '{image_path}'."
+
+        use_raqm = self._has_raqm()
+
+        # Resolve fonts and process text for each item
+        resolved_items: list[dict] = []
+        for i, item in enumerate(items):
+            text = item.get("text", "")
+            if not text:
+                return f"Error: Item {i} has no 'text' field."
+
+            font_name = item.get("font_name", "Alyamama")
+            font_path = self._resolve_font(font_name)
+            if font_path is None:
+                available = self._list_available_fonts()
+                return (
+                    f"Error: Font '{font_name}' not found for item {i}. "
+                    f"Available fonts: {available or 'none'}."
+                )
+
+            if use_raqm:
+                processed_text = text
+            else:
+                processed_text = self._process_arabic(text)
+
+            resolved = {
+                "text": processed_text,
+                "font": str(font_path),
+                "size": item.get("size", 48),
+                "text_color": item.get("text_color", "0,0,0"),
+                "outline_color": item.get("outline_color", "255,255,255"),
+                "outline_width": item.get("outline_width", 0),
+                "max_width": item.get("max_width", 0),
+            }
+            if item.get("x") is not None:
+                resolved["x"] = item["x"]
+            if item.get("y") is not None:
+                resolved["y"] = item["y"]
+            if use_raqm:
+                resolved["direction"] = "rtl"
+                resolved["language"] = "ar"
+
+            resolved_items.append(resolved)
+
+        # Prepare output path
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = int(time.time() * 1000)
+        output_path = self.output_dir / f"render_{timestamp}.png"
+
+        # Build JSON payload
+        payload = {
+            "items": resolved_items,
+            "bg_color": bg_color,
+            "canvas_width": canvas_width,
+            "canvas_height": canvas_height,
+        }
+        if image_path:
+            payload["image_path"] = image_path
+
+        payload_json = json.dumps(payload, ensure_ascii=False)
+
+        # Run worker in multi mode
+        cmd = [
+            sys.executable,
+            str(self._worker_script),
+            "--multi",
+            "--output", str(output_path),
+        ]
+
+        try:
+            proc = subprocess.run(
+                cmd,
+                input=payload_json,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except subprocess.TimeoutExpired:
+            return "Error: Rendering timed out after 30 seconds."
+
+        if proc.returncode != 0:
+            stderr = proc.stderr.strip()
+            for line in stderr.splitlines():
+                if line.startswith("RENDER_ERROR:"):
+                    return f"Error: {line.removeprefix('RENDER_ERROR:').strip()}"
+            return f"Error: Worker exited with code {proc.returncode}."
+
+        if not output_path.exists():
+            return "Error: Rendering completed but output file was not created."
+
+        return str(output_path)
+
     # ── Private helpers ──────────────────────────────────────────────────
     @staticmethod
     def _process_arabic(text: str) -> str:

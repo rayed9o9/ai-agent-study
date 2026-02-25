@@ -71,8 +71,8 @@ def wrap_text(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Arabic text renderer worker (Pillow)")
-    parser.add_argument("--text", required=True, help="Pre-processed (reshaped + bidi) text")
-    parser.add_argument("--font", required=True, help="Absolute path to .ttf/.otf font file")
+    parser.add_argument("--text", required=False, help="Pre-processed (reshaped + bidi) text")
+    parser.add_argument("--font", required=False, help="Absolute path to .ttf/.otf font file")
     parser.add_argument("--size", type=int, default=48, help="Font size in pixels")
     parser.add_argument("--output", required=True, help="Output PNG file path")
     parser.add_argument("--bg-color", default="255,255,255", help="Background color as R,G,B")
@@ -86,12 +86,132 @@ def main() -> None:
     parser.add_argument("--max-width", type=int, default=0, help="Max text width in px before wrapping (0 = no wrap)")
     parser.add_argument("--direction", default=None, help="Text direction for raqm layout, e.g. 'rtl'")
     parser.add_argument("--language", default=None, help="Text language for raqm shaping, e.g. 'ar'")
+    parser.add_argument("--multi", action="store_true", help="Multi-text mode: read JSON array from stdin")
     args = parser.parse_args()
 
     try:
         from PIL import Image, ImageDraw, ImageFont
     except ImportError as exc:
         print(f"RENDER_ERROR: Failed to import Pillow — {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    # ── Multi-text mode ──────────────────────────────────────────────────
+    if args.multi:
+        import json
+
+        raw = sys.stdin.read()
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            print(f"RENDER_ERROR: Invalid JSON — {exc}", file=sys.stderr)
+            sys.exit(1)
+
+        image_path = payload.get("image_path")
+        items = payload.get("items", [])
+        bg_color_str = payload.get("bg_color", "255,255,255")
+        canvas_width = payload.get("canvas_width", 800)
+        canvas_height = payload.get("canvas_height", 600)
+
+        try:
+            bg_color = parse_color(bg_color_str)
+        except ValueError as exc:
+            print(f"RENDER_ERROR: Invalid bg_color — {exc}", file=sys.stderr)
+            sys.exit(1)
+
+        # Load or create canvas
+        if image_path:
+            try:
+                img = Image.open(image_path).convert("RGBA")
+            except Exception as exc:
+                print(f"RENDER_ERROR: Could not open image '{image_path}' — {exc}", file=sys.stderr)
+                sys.exit(2)
+        else:
+            img = Image.new("RGBA", (canvas_width, canvas_height), color=bg_color + (255,))
+
+        overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        draw = ImageDraw.Draw(overlay)
+        canvas_w, canvas_h = img.size
+
+        for idx, item in enumerate(items):
+            try:
+                item_text = item["text"]
+                item_font_path = item["font"]
+                item_size = item.get("size", 48)
+                item_x = item.get("x")
+                item_y = item.get("y")
+                item_text_color = parse_color(item.get("text_color", "0,0,0"))
+                item_outline_color = parse_color(item.get("outline_color", "255,255,255"))
+                item_outline_width = item.get("outline_width", 0)
+                item_max_width = item.get("max_width", 0)
+                item_direction = item.get("direction")
+                item_language = item.get("language")
+
+                font = ImageFont.truetype(item_font_path, item_size)
+
+                # Wrap text if needed
+                if item_max_width > 0:
+                    lines = wrap_text(item_text, font, item_max_width, direction=item_direction)
+                else:
+                    lines = [item_text]
+
+                # Measure lines
+                bbox_kw: dict = {"font": font, "stroke_width": item_outline_width}
+                if item_direction:
+                    bbox_kw["direction"] = item_direction
+                if item_language:
+                    bbox_kw["language"] = item_language
+
+                line_metrics = []
+                for line in lines:
+                    bbox = draw.textbbox((0, 0), line, **bbox_kw)
+                    w = bbox[2] - bbox[0]
+                    h = bbox[3] - bbox[1]
+                    line_metrics.append((w, h, bbox))
+
+                line_spacing = int(item_size * 0.3)
+                total_text_w = max(m[0] for m in line_metrics)
+                total_text_h = sum(m[1] for m in line_metrics) + line_spacing * (len(lines) - 1)
+
+                # Draw kwargs
+                draw_kw: dict = {"font": font, "fill": item_text_color}
+                if item_outline_width > 0:
+                    draw_kw["stroke_width"] = item_outline_width
+                    draw_kw["stroke_fill"] = item_outline_color
+                if item_direction:
+                    draw_kw["direction"] = item_direction
+                if item_language:
+                    draw_kw["language"] = item_language
+
+                # Position
+                block_x = item_x if item_x is not None else (canvas_w - total_text_w) // 2
+                block_y = item_y if item_y is not None else (canvas_h - total_text_h) // 2
+
+                cur_y = block_y
+                for i, line in enumerate(lines):
+                    lw, lh, lbbox = line_metrics[i]
+                    lx = block_x + (total_text_w - lw) // 2 - lbbox[0]
+                    ly = cur_y - lbbox[1]
+                    draw.text((lx, ly), line, **draw_kw)
+                    cur_y += lh + line_spacing
+
+            except Exception as exc:
+                print(f"RENDER_ERROR: Failed on item {idx} — {exc}", file=sys.stderr)
+                sys.exit(2)
+
+        img = Image.alpha_composite(img, overlay).convert("RGB")
+
+        try:
+            img.save(args.output, "PNG")
+        except Exception as exc:
+            print(f"RENDER_ERROR: Failed to save image — {exc}", file=sys.stderr)
+            sys.exit(3)
+
+        print(f"RENDER_OK: {args.output}")
+        return
+
+    # ── Single-text mode (original) ──────────────────────────────────────
+    if not args.text or not args.font:
+        print("RENDER_ERROR: --text and --font are required in single-text mode", file=sys.stderr)
         sys.exit(1)
 
     # ── Parse colors ────────────────────────────────────────────────────
