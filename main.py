@@ -36,7 +36,7 @@ def agent_usage() -> None:
     )
 
     response = agent.invoke(
-        {"messages": [{"role": "user", "content": "design a bussiness card that has more than one text for a doctor with the name 'عبد الرحمن بن محمد' use 'image.png' as background my number is 0500000000 you can place the text on the middle of the image. and place the job title in arabic"}]}
+        {"messages": [{"role": "user", "content": "design a card with this arabic poem 'نَعاهُ الشّيبُ والرّأسُ الخَضِيبُ , عريتُ منَ الشّبابِ وكنتُ غضاً	, فيَا لَيتَ الشّبابَ يَعُودُ يَوْماً, أحنّ إلى خبز أمي ' the path of the image is 'image.png' "}]}
     )
     print(response)
 

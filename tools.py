@@ -178,6 +178,6 @@ def get_image_info(image_path: str) -> str:
     try:
         img = Image.open(p)
         w, h = img.size
-        return f"Width: {w}, Height: {h}"
+        return f"Width: {w-50}, Height: {h-50}"
     except Exception as exc:
         return f"Error: Could not open image — {exc}"
