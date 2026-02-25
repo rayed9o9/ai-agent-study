@@ -7,9 +7,20 @@ to the LangChain agent backed by Ollama + Arabic text tools.
 
 from __future__ import annotations
 
+import logging
 import re
 import uuid
 from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Logging setup
+# ---------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s  %(levelname)-8s  %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger("arabic-ai")
 
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
@@ -79,6 +90,11 @@ async def chat(
     image: UploadFile | None = File(None),
 ):
     """Accept a user message (+ optional image) and return the agent response."""
+    log.info("━" * 60)
+    log.info("NEW REQUEST")
+    log.info("  Message : %s", message[:200])
+    log.info("  Image   : %s", image.filename if image and image.filename else "(none)")
+
     image_path: str | None = None
 
     # Save uploaded image -------------------------------------------------
@@ -89,6 +105,7 @@ async def chat(
         contents = await image.read()
         saved_path.write_bytes(contents)
         image_path = str(saved_path)
+        log.info("  Saved to: %s  (%d bytes)", image_path, len(contents))
 
     # Build the prompt for the agent --------------------------------------
     user_input = message
@@ -99,11 +116,21 @@ async def chat(
             f"render_arabic_text or render_arabic_texts: {image_path}"
         )
 
+    log.debug("PROMPT TO AGENT:\n%s", user_input)
+
     # Invoke agent --------------------------------------------------------
+    log.info("Invoking agent…")
     try:
         result = agent.invoke(
             {"messages": [{"role": "user", "content": user_input}]}
         )
+        # Log all messages for debugging
+        for i, msg in enumerate(result.get("messages", [])):
+            role = getattr(msg, "type", "?")
+            content = getattr(msg, "content", "")
+            preview = (str(content)[:300] + "…") if len(str(content)) > 300 else str(content)
+            log.debug("  msg[%d] role=%s: %s", i, role, preview)
+
         # Extract the final AI message text
         messages = result.get("messages", [])
         agent_text = ""
@@ -113,7 +140,10 @@ async def chat(
                 break
         if not agent_text:
             agent_text = str(result)
+
+        log.info("Agent reply: %s", agent_text[:300])
     except Exception as exc:
+        log.exception("Agent error")
         agent_text = f"Sorry, an error occurred: {exc}"
 
     # Find any output image paths in the response -------------------------
@@ -131,6 +161,9 @@ async def chat(
             url = f"/output/{fname}"
             if url not in output_images:
                 output_images.append(url)
+
+    log.info("Output images: %s", output_images)
+    log.info("━" * 60)
 
     return JSONResponse({
         "reply": agent_text,
