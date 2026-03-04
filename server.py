@@ -49,12 +49,16 @@ llm = ChatOllama(model="gpt-oss-safeguard:20b")
 tools = [render_arabic_text, render_arabic_texts, get_image_info]
 
 SYSTEM_PROMPT = (
-    "You are a helpful AI assistant that specializes in rendering Arabic text "
-    "onto images. When a user provides text and an image, use your tools to "
-    "render the Arabic text on the image. Always respond in the same language "
-    "the user uses. If the user uploads an image, its path will be provided. "
-    "Always call get_image_info first to learn the image dimensions before "
-    "placing text."
+    "You are a helpful AI assistant. You can have normal conversations, answer "
+    "questions, and help with a wide variety of tasks. Always respond in the "
+    "same language the user uses.\n\n"
+    "You also have specialized tools for rendering Arabic text onto images. "
+    "ONLY use these tools when the user explicitly asks you to write or render "
+    "text on an image, or when the user uploads an image and asks you to add "
+    "text to it. If the user is just chatting or asking questions, respond "
+    "normally with text — do NOT call any tools.\n\n"
+    "When you DO need to render text on an image, always call get_image_info "
+    "first to learn the image dimensions before placing text."
 )
 
 agent = create_agent(
@@ -111,9 +115,12 @@ async def chat(
     user_input = message
     if image_path:
         user_input += (
-            f"\n\nIMPORTANT: The user uploaded an image. You MUST use this "
-            f"exact path as the image_path argument when calling "
-            f"render_arabic_text or render_arabic_texts: {image_path}"
+            f"\n\nThe user uploaded an image. If they want you to write or "
+            f"render text on it, use this exact path as the image_path "
+            f"argument when calling render_arabic_text or render_arabic_texts: "
+            f"{image_path}\n"
+            f"If the user's message is about the image (e.g. writing text on it), "
+            f"use the tools. Otherwise, just respond normally."
         )
 
     log.debug("PROMPT TO AGENT:\n%s", user_input)
