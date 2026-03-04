@@ -135,7 +135,27 @@ function hideTyping() {
     if (el) el.remove();
 }
 
-// ─── Send message ───────────────────────────────────────
+// ─── Create an empty streaming assistant message ────────
+function addStreamingMessage() {
+    welcomeEl.style.display = 'none';
+
+    const row = document.createElement('div');
+    row.className = 'msg';
+
+    row.innerHTML = `
+    <div class="msg-avatar assistant">ع</div>
+    <div class="msg-body">
+      <div class="msg-role">Arabic AI</div>
+      <div class="msg-content markdown-body streaming"></div>
+    </div>
+  `;
+
+    innerEl.appendChild(row);
+    scrollBottom();
+    return row.querySelector('.msg-content');
+}
+
+// ─── Send message (streaming) ───────────────────────────
 async function sendMessage() {
     const text = messageInput.value.trim();
     if (!text || isLoading) return;
@@ -167,9 +187,63 @@ async function sendMessage() {
 
     try {
         const res = await fetch('/chat', { method: 'POST', body: formData });
-        const data = await res.json();
+
         hideTyping();
-        addMessage('assistant', data.reply, data.images || []);
+        const contentEl = addStreamingMessage();
+
+        let fullText = '';
+        let images = [];
+        let renderPending = false;
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+
+            // Process complete SSE lines
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // keep incomplete line in buffer
+
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+
+                try {
+                    const data = JSON.parse(line.slice(6));
+
+                    if (data.type === 'token') {
+                        fullText += data.content;
+                        // Batch renders using rAF for smooth performance
+                        if (!renderPending) {
+                            renderPending = true;
+                            requestAnimationFrame(() => {
+                                contentEl.innerHTML = marked.parse(fullText);
+                                scrollBottom();
+                                renderPending = false;
+                            });
+                        }
+                    } else if (data.type === 'done') {
+                        images = data.images || [];
+                    } else if (data.type === 'error') {
+                        contentEl.classList.remove('streaming');
+                        contentEl.textContent = data.content;
+                    }
+                } catch (e) {
+                    // ignore parse errors for incomplete JSON
+                }
+            }
+        }
+
+        // Final markdown render + append images
+        contentEl.classList.remove('streaming');
+        contentEl.innerHTML = marked.parse(fullText);
+        for (const img of images) {
+            contentEl.innerHTML += `<br/><img src="${img}" alt="rendered output"/>`;
+        }
+        scrollBottom();
 
         // Add to sidebar history
         addChatHistoryItem(text);

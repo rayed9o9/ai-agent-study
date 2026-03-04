@@ -349,6 +349,26 @@ textarea {
   /* override pre-wrap — HTML handles it now */
 }
 
+/* Streaming cursor — blinking block at the end while tokens arrive */
+.markdown-body.streaming::after {
+  content: '▌';
+  color: var(--accent);
+  font-weight: 400;
+  animation: cursorBlink 0.7s steps(1) infinite;
+}
+
+@keyframes cursorBlink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
 .markdown-body p {
   margin: 0 0 12px;
 }

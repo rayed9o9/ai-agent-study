@@ -7,6 +7,7 @@ to the LangChain agent backed by Ollama + Arabic text tools.
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 import uuid
@@ -23,7 +24,7 @@ logging.basicConfig(
 log = logging.getLogger("arabic-ai")
 
 from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from langchain.agents import create_agent
@@ -93,7 +94,7 @@ async def chat(
     message: str = Form(...),
     image: UploadFile | None = File(None),
 ):
-    """Accept a user message (+ optional image) and return the agent response."""
+    """Accept a user message (+ optional image) and stream the response via SSE."""
     log.info("━" * 60)
     log.info("NEW REQUEST")
     log.info("  Message : %s", message[:200])
@@ -125,54 +126,60 @@ async def chat(
 
     log.debug("PROMPT TO AGENT:\n%s", user_input)
 
-    # Invoke agent --------------------------------------------------------
-    log.info("Invoking agent…")
-    try:
-        result = agent.invoke(
-            {"messages": [{"role": "user", "content": user_input}]}
-        )
-        # Log all messages for debugging
-        for i, msg in enumerate(result.get("messages", [])):
-            role = getattr(msg, "type", "?")
-            content = getattr(msg, "content", "")
-            preview = (str(content)[:300] + "…") if len(str(content)) > 300 else str(content)
-            log.debug("  msg[%d] role=%s: %s", i, role, preview)
+    # Stream agent response via SSE ---------------------------------------
+    async def event_stream():
+        collected_text = ""
+        all_content = ""  # includes tool outputs for image path detection
 
-        # Extract the final AI message text
-        messages = result.get("messages", [])
-        agent_text = ""
-        for msg in reversed(messages):
-            if hasattr(msg, "content") and msg.type == "ai" and msg.content:
-                agent_text = msg.content
-                break
-        if not agent_text:
-            agent_text = str(result)
+        try:
+            async for event in agent.astream_events(
+                {"messages": [{"role": "user", "content": user_input}]},
+                version="v2",
+            ):
+                kind = event["event"]
 
-        log.info("Agent reply: %s", agent_text[:300])
-    except Exception as exc:
-        log.exception("Agent error")
-        agent_text = f"Sorry, an error occurred: {exc}"
+                # Stream LLM text tokens (skip tool-call chunks)
+                if kind == "on_chat_model_stream":
+                    chunk = event["data"]["chunk"]
+                    content = getattr(chunk, "content", "")
+                    tool_chunks = getattr(chunk, "tool_call_chunks", [])
+                    if content and not tool_chunks:
+                        collected_text += content
+                        yield f"data: {json.dumps({'type': 'token', 'content': content})}\n\n"
 
-    # Find any output image paths in the response -------------------------
-    output_images: list[str] = []
-    # Search in the agent text and also in all message contents
-    search_text = agent_text
-    for msg in result.get("messages", []):
-        if hasattr(msg, "content") and isinstance(msg.content, str):
-            search_text += " " + msg.content
+                # Collect tool outputs for image-path detection
+                elif kind == "on_tool_end":
+                    output = event["data"].get("output", "")
+                    if isinstance(output, str):
+                        all_content += " " + output
 
-    for match in re.finditer(r"(?:/[^\s\"']+)?output/render_\w+\.png", search_text):
-        full_path = match.group(0)
-        fname = Path(full_path).name
-        if (OUTPUT_DIR / fname).is_file():
-            url = f"/output/{fname}"
-            if url not in output_images:
-                output_images.append(url)
+        except Exception as exc:
+            log.exception("Agent streaming error")
+            yield f"data: {json.dumps({'type': 'error', 'content': f'Sorry, an error occurred: {exc}'})}\n\n"
 
-    log.info("Output images: %s", output_images)
-    log.info("━" * 60)
+        # Find output images in collected text + tool outputs
+        search_text = collected_text + " " + all_content
+        output_images: list[str] = []
+        for match in re.finditer(r"(?:/[^\s\"']+)?output/render_\w+\.png", search_text):
+            full_path = match.group(0)
+            fname = Path(full_path).name
+            if (OUTPUT_DIR / fname).is_file():
+                url = f"/output/{fname}"
+                if url not in output_images:
+                    output_images.append(url)
 
-    return JSONResponse({
-        "reply": agent_text,
-        "images": output_images,
-    })
+        log.info("Agent reply: %s", collected_text[:300])
+        log.info("Output images: %s", output_images)
+        log.info("━" * 60)
+
+        yield f"data: {json.dumps({'type': 'done', 'images': output_images})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
