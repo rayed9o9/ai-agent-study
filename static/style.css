@@ -6,35 +6,42 @@
 
 /* ─── Tokens ─────────────────────────────────────────────── */
 :root {
-  --bg-primary:      #0d0d0d;
-  --bg-secondary:    #1a1a1a;
-  --bg-tertiary:     #2a2a2a;
-  --bg-hover:        #333;
-  --glass:           rgba(255,255,255,0.04);
-  --glass-border:    rgba(255,255,255,0.08);
-  --glass-hover:     rgba(255,255,255,0.08);
-  --text-primary:    #e5e5e5;
-  --text-secondary:  #999;
-  --text-muted:      #666;
-  --accent:          #8b5cf6;
-  --accent-hover:    #7c3aed;
-  --accent-glow:     rgba(139,92,246,0.25);
-  --danger:          #ef4444;
-  --radius-sm:       8px;
-  --radius-md:       12px;
-  --radius-lg:       16px;
-  --radius-xl:       24px;
-  --shadow:          0 4px 24px rgba(0,0,0,0.4);
-  --transition:      0.2s cubic-bezier(.4,0,.2,1);
-  --font-sans:       'Inter', sans-serif;
-  --font-arabic:     'Cairo', sans-serif;
-  --sidebar-width:   280px;
+  --bg-primary: #0d0d0d;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #2a2a2a;
+  --bg-hover: #333;
+  --glass: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-hover: rgba(255, 255, 255, 0.08);
+  --text-primary: #e5e5e5;
+  --text-secondary: #999;
+  --text-muted: #666;
+  --accent: #8b5cf6;
+  --accent-hover: #7c3aed;
+  --accent-glow: rgba(139, 92, 246, 0.25);
+  --danger: #ef4444;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --transition: 0.2s cubic-bezier(.4, 0, .2, 1);
+  --font-sans: 'Inter', sans-serif;
+  --font-arabic: 'Cairo', sans-serif;
+  --sidebar-width: 280px;
 }
 
 /* ─── Reset ──────────────────────────────────────────────── */
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-html, body {
+html,
+body {
   height: 100%;
   font-family: var(--font-sans);
   background: var(--bg-primary);
@@ -42,15 +49,42 @@ html, body {
   overflow: hidden;
 }
 
-a { color: var(--accent); text-decoration: none; }
-button { cursor: pointer; border: none; background: none; font-family: inherit; color: inherit; }
-input, textarea { font-family: inherit; color: inherit; }
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+  color: inherit;
+}
+
+input,
+textarea {
+  font-family: inherit;
+  color: inherit;
+}
 
 /* custom scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--bg-hover); }
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bg-hover);
+}
 
 /* ─── Layout ─────────────────────────────────────────────── */
 .app {
@@ -115,6 +149,7 @@ input, textarea { font-family: inherit; color: inherit; }
   transition: all var(--transition);
   margin-bottom: 16px;
 }
+
 .new-chat-btn:hover {
   background: var(--glass-hover);
   color: var(--text-primary);
@@ -139,6 +174,7 @@ input, textarea { font-family: inherit; color: inherit; }
   text-overflow: ellipsis;
   transition: all var(--transition);
 }
+
 .chat-list-item:hover,
 .chat-list-item.active {
   background: var(--glass-hover);
@@ -213,6 +249,7 @@ input, textarea { font-family: inherit; color: inherit; }
   gap: 16px;
   opacity: 0.7;
 }
+
 .welcome-icon {
   width: 56px;
   height: 56px;
@@ -223,10 +260,12 @@ input, textarea { font-family: inherit; color: inherit; }
   justify-content: center;
   font-size: 28px;
 }
+
 .welcome h2 {
   font-size: 22px;
   font-weight: 600;
 }
+
 .welcome p {
   font-size: 14px;
   color: var(--text-secondary);
@@ -241,9 +280,17 @@ input, textarea { font-family: inherit; color: inherit; }
   gap: 14px;
   animation: fadeUp 0.35s ease-out both;
 }
+
 @keyframes fadeUp {
-  from { opacity:0; transform:translateY(12px); }
-  to   { opacity:1; transform:translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .msg-avatar {
@@ -257,10 +304,12 @@ input, textarea { font-family: inherit; color: inherit; }
   font-size: 14px;
   font-weight: 600;
 }
+
 .msg-avatar.user {
   background: var(--bg-tertiary);
   color: var(--text-secondary);
 }
+
 .msg-avatar.assistant {
   background: linear-gradient(135deg, var(--accent), #a78bfa);
   color: #fff;
@@ -307,11 +356,13 @@ input, textarea { font-family: inherit; color: inherit; }
   gap: 14px;
   animation: fadeUp 0.35s ease-out both;
 }
+
 .typing-dots {
   display: flex;
   gap: 4px;
   padding-top: 10px;
 }
+
 .typing-dots span {
   width: 7px;
   height: 7px;
@@ -319,12 +370,32 @@ input, textarea { font-family: inherit; color: inherit; }
   border-radius: 50%;
   animation: bounce 1.4s infinite ease-in-out both;
 }
-.typing-dots span:nth-child(1) { animation-delay: 0s; }
-.typing-dots span:nth-child(2) { animation-delay: 0.16s; }
-.typing-dots span:nth-child(3) { animation-delay: 0.32s; }
+
+.typing-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
 @keyframes bounce {
-  0%, 80%, 100% { transform: scale(0.6); opacity:0.4; }
-  40% { transform: scale(1); opacity:1; }
+
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* ─── Input Area ─────────────────────────────────────────── */
@@ -346,6 +417,7 @@ input, textarea { font-family: inherit; color: inherit; }
   flex-direction: column;
   transition: border-color var(--transition), box-shadow var(--transition);
 }
+
 .input-wrap:focus-within {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
@@ -358,7 +430,10 @@ input, textarea { font-family: inherit; color: inherit; }
   gap: 8px;
   padding: 8px 0 4px;
 }
-.upload-preview.show { display: flex; }
+
+.upload-preview.show {
+  display: flex;
+}
 
 .upload-preview img {
   width: 64px;
@@ -383,6 +458,7 @@ input, textarea { font-family: inherit; color: inherit; }
   top: -22px;
   left: -14px;
 }
+
 .upload-preview .remove-img:hover {
   background: var(--danger);
   color: #fff;
@@ -407,7 +483,10 @@ input, textarea { font-family: inherit; color: inherit; }
   outline: none;
   color: var(--text-primary);
 }
-.input-row textarea::placeholder { color: var(--text-muted); }
+
+.input-row textarea::placeholder {
+  color: var(--text-muted);
+}
 
 .input-actions {
   display: flex;
@@ -426,6 +505,7 @@ input, textarea { font-family: inherit; color: inherit; }
   transition: all var(--transition);
   color: var(--text-muted);
 }
+
 .icon-btn:hover {
   background: var(--glass-hover);
   color: var(--text-primary);
@@ -443,18 +523,156 @@ input, textarea { font-family: inherit; color: inherit; }
   font-size: 16px;
   transition: all var(--transition);
 }
-.send-btn:hover { background: var(--accent-hover); transform: scale(1.05); }
-.send-btn:disabled { opacity: 0.4; pointer-events: none; }
+
+.send-btn:hover {
+  background: var(--accent-hover);
+  transform: scale(1.05);
+}
+
+.send-btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
 
 /* ─── Responsive ─────────────────────────────────────────── */
 @media (max-width: 768px) {
+
+  /* Sidebar overlay */
   .sidebar {
     position: fixed;
-    left: 0; top: 0; bottom: 0;
+    left: 0;
+    top: 0;
+    bottom: 0;
     transform: translateX(-100%);
   }
-  .sidebar.open { transform: translateX(0); }
-  .menu-btn { display: flex; }
-  .messages-inner { padding: 0 16px; }
-  .input-area { padding: 12px 16px 16px; }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .menu-btn {
+    display: flex;
+  }
+
+  /* Use the full height properly with safe areas */
+  .app {
+    height: 100vh;
+    height: 100dvh;
+    /* dynamic viewport height — accounts for iOS address bar */
+  }
+
+  /* Topbar: respect the notch / dynamic island */
+  .topbar {
+    height: auto;
+    min-height: 44px;
+    padding: 8px 16px;
+    padding-top: calc(8px + env(safe-area-inset-top, 0px));
+  }
+
+  /* Messages: tighter padding, less top space to push chat up */
+  .messages {
+    padding: 12px 0 8px;
+  }
+
+  .messages-inner {
+    padding: 0 12px;
+    gap: 16px;
+  }
+
+  /* Welcome screen: smaller on mobile */
+  .welcome-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+
+  .welcome h2 {
+    font-size: 18px;
+  }
+
+  .welcome p {
+    font-size: 13px;
+  }
+
+  /* Message text slightly smaller */
+  .msg-content {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .msg-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .msg {
+    gap: 10px;
+  }
+
+  .msg-role {
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  /* Input area: closer to content, respect home indicator */
+  .input-area {
+    padding: 8px 12px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .input-wrap {
+    border-radius: var(--radius-lg);
+    padding: 4px 4px 4px 14px;
+  }
+
+  .input-row textarea {
+    font-size: 16px;
+    /* prevents iOS auto-zoom on focus */
+    padding: 8px 0;
+  }
+
+  /* Larger touch targets on mobile */
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .send-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  /* Output images: fit better on small screens */
+  .msg-content img {
+    max-width: 100%;
+    border-radius: var(--radius-sm);
+  }
+
+  .msg-image-preview {
+    max-width: 160px;
+  }
+}
+
+/* ─── Extra small screens (iPhone SE, etc.) ──────────────── */
+@media (max-width: 380px) {
+  .messages-inner {
+    padding: 0 8px;
+  }
+
+  .input-area {
+    padding: 6px 8px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .topbar {
+    padding: 6px 12px;
+    padding-top: calc(6px + env(safe-area-inset-top, 0px));
+  }
+
+  .welcome h2 {
+    font-size: 16px;
+  }
 }

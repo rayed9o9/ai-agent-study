@@ -1,88 +1,89 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
   <title>Arabic AI Chat</title>
   <meta name="description" content="Chat with an AI agent that renders Arabic text onto images" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
+
 <body>
 
-<div class="app">
-  <!-- ─── Sidebar ─────────────────────────────────────── -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-logo">ع</div>
-      <span class="sidebar-title">Arabic AI</span>
-    </div>
+  <div class="app">
+    <!-- ─── Sidebar ─────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">ع</div>
+        <span class="sidebar-title">Arabic AI</span>
+      </div>
 
-    <button class="new-chat-btn" id="newChatBtn" onclick="newChat()">
-      <span>＋</span> New Chat
-    </button>
+      <button class="new-chat-btn" id="newChatBtn" onclick="newChat()">
+        <span>＋</span> New Chat
+      </button>
 
-    <div class="chat-list" id="chatList">
-      <!-- filled by JS -->
-    </div>
+      <div class="chat-list" id="chatList">
+        <!-- filled by JS -->
+      </div>
 
-    <div class="sidebar-footer">
-      Powered by Ollama &middot; LangChain
-    </div>
-  </aside>
+      <div class="sidebar-footer">
+        Powered by Ollama &middot; LangChain
+      </div>
+    </aside>
 
-  <!-- ─── Main ────────────────────────────────────────── -->
-  <div class="main">
-    <!-- Top bar -->
-    <div class="topbar">
-      <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-      <span class="topbar-model">gpt-oss-safeguard:20b</span>
-    </div>
+    <!-- ─── Main ────────────────────────────────────────── -->
+    <div class="main">
+      <!-- Top bar -->
+      <div class="topbar">
+        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+        <span class="topbar-model">gpt-oss-safeguard:20b</span>
+      </div>
 
-    <!-- Messages -->
-    <div class="messages" id="messages">
-      <div class="messages-inner" id="messagesInner">
-        <!-- Welcome -->
-        <div class="welcome" id="welcome">
-          <div class="welcome-icon">ع</div>
-          <h2>Arabic AI Chat</h2>
-          <p>Send a message with an image to render beautiful Arabic text. Upload an image, type your request, and the AI will do the rest.</p>
+      <!-- Messages -->
+      <div class="messages" id="messages">
+        <div class="messages-inner" id="messagesInner">
+          <!-- Welcome -->
+          <div class="welcome" id="welcome">
+            <div class="welcome-icon">ع</div>
+            <h2>Arabic AI Chat</h2>
+            <p>Send a message with an image to render beautiful Arabic text. Upload an image, type your request, and the
+              AI will do the rest.</p>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Input -->
-    <div class="input-area">
-      <div class="input-wrap" id="inputWrap">
-        <!-- Upload preview -->
-        <div class="upload-preview" id="uploadPreview">
-          <img id="previewImg" src="" alt="preview" />
-          <button class="remove-img" onclick="removeImage()">✕</button>
-        </div>
+      <!-- Input -->
+      <div class="input-area">
+        <div class="input-wrap" id="inputWrap">
+          <!-- Upload preview -->
+          <div class="upload-preview" id="uploadPreview">
+            <img id="previewImg" src="" alt="preview" />
+            <button class="remove-img" onclick="removeImage()">✕</button>
+          </div>
 
-        <div class="input-row">
-          <textarea
-            id="messageInput"
-            rows="1"
-            placeholder="Type your message…"
-            onkeydown="handleKey(event)"
-            oninput="autoResize(this)"
-          ></textarea>
+          <div class="input-row">
+            <textarea id="messageInput" rows="1" placeholder="Type your message…" onkeydown="handleKey(event)"
+              oninput="autoResize(this)"></textarea>
 
-          <div class="input-actions">
-            <label class="icon-btn" title="Upload image">
-              📎
-              <input type="file" accept="image/*" id="imageInput" style="display:none" onchange="handleImageSelect(event)" />
-            </label>
-            <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Send">
-              ➤
-            </button>
+            <div class="input-actions">
+              <label class="icon-btn" title="Upload image">
+                📎
+                <input type="file" accept="image/*" id="imageInput" style="display:none"
+                  onchange="handleImageSelect(event)" />
+              </label>
+              <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Send">
+                ➤
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<script src="/static/app.js"></script>
+  <script src="/static/app.js"></script>
 </body>
+
 </html>

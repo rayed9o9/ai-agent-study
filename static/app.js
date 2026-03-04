@@ -187,3 +187,18 @@ function escapeHtml(str) {
     div.textContent = str;
     return div.innerHTML;
 }
+
+// ─── iOS keyboard handling ──────────────────────────────
+// When the virtual keyboard opens on iOS, scroll to keep input visible
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+        // Scroll messages to bottom when keyboard opens/closes
+        scrollBottom();
+        // Ensure the input area stays above the keyboard
+        document.documentElement.style.setProperty(
+            '--keyboard-offset',
+            `${window.innerHeight - window.visualViewport.height}px`
+        );
+    });
+}
+
