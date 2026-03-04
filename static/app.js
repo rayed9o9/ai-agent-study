@@ -66,6 +66,12 @@ function scrollBottom() {
     messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: 'smooth' });
 }
 
+// ─── Configure marked.js ────────────────────────────────
+marked.setOptions({
+    breaks: true,       // Convert \n to <br>
+    gfm: true,          // GitHub Flavored Markdown
+});
+
 // ─── Render a message ───────────────────────────────────
 function addMessage(role, text, images = [], uploadedImgSrc = null) {
     // Hide welcome
@@ -78,7 +84,13 @@ function addMessage(role, text, images = [], uploadedImgSrc = null) {
     const avatarChar = role === 'user' ? '👤' : 'ع';
     const roleName = role === 'user' ? 'You' : 'Arabic AI';
 
-    let contentHtml = escapeHtml(text);
+    // User messages: escape HTML. Assistant messages: render markdown.
+    let contentHtml;
+    if (role === 'user') {
+        contentHtml = escapeHtml(text);
+    } else {
+        contentHtml = marked.parse(text);
+    }
 
     // Show uploaded image inline in user bubble
     if (uploadedImgSrc) {
@@ -94,7 +106,7 @@ function addMessage(role, text, images = [], uploadedImgSrc = null) {
     <div class="msg-avatar ${avatarClass}">${avatarChar}</div>
     <div class="msg-body">
       <div class="msg-role">${roleName}</div>
-      <div class="msg-content">${contentHtml}</div>
+      <div class="msg-content ${role === 'user' ? '' : 'markdown-body'}">${contentHtml}</div>
     </div>
   `;
 
